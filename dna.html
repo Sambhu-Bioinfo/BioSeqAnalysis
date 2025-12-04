@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioSeqAnalysis – DNA Tools</title>
+  <!-- Chart.js for pie chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- JSZip for creating ZIP of ORFs -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #222;
+    }
+
+    header {
+      background: #0b6fa4;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      color: white;
+    }
+
+    header img {
+      height: 60px;
+      margin-right: 15px;
+    }
+
+    nav {
+      background: #084f73;
+      padding: 12px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 20px auto 40px;
+      padding: 0 15px;
+    }
+
+    h2 {
+      color: #0b6fa4;
+      margin-top: 0;
+    }
+
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .flex-col {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    textarea {
+      width: 100%;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      box-sizing: border-box;
+      height: 150px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .btn-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #0b6fa4;
+      color: white;
+      font-size: 14px;
+      white-space: nowrap;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #084f73;
+    }
+    
+    button.secondary {
+      background: #5bc0de;
+    }
+    button.secondary:hover {
+      background: #31b0d5;
+    }
+
+    button.example-btn {
+      background: #f0ad4e;
+      margin-left: auto;
+    }
+    button.example-btn:hover {
+      background: #ec971f;
+    }
+
+    .message {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none; /* Hidden by default */
+    }
+
+    .message.error {
+      display: block;
+      background: #ffe6e6;
+      color: #a40000;
+      border: 1px solid #ffb3b3;
+    }
+
+    .message.success {
+      display: block;
+      background: #e7f7ea;
+      color: #0d6a2f;
+      border: 1px solid #b8e2c3;
+    }
+
+    .tools-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .result-section {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .result-terminal {
+      background: #050814; /* Black-blue background */
+      color: #00ff41;       /* Terminal green text */
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      border-radius: 10px;
+      padding: 15px;
+      height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      flex: 2;
+      min-width: 300px;
+      border: 1px solid #333;
+    }
+
+    .chart-box {
+        flex: 1;
+        min-width: 250px;
+        background: white;
+        border-radius: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        display: none; /* Hidden until needed */
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 300px;
+    }
+
+    .downloads-row {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .downloads-row button {
+        background: #d9534f;
+    }
+    .downloads-row button:hover {
+        background: #c9302c;
+    }
+
+    footer {
+      background: #0b6fa4;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <img src="logo.png" alt="BioSeqAnalysis Logo" onerror="this.style.display='none'"/>
+    <h1>BioSeqAnalysis</h1>
+  </header>
+
+  <!-- Nav -->
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="dna.html">DNA Tools</a>
+    <a href="rna.html">RNA Tools</a>
+    <a href="protein.html">Protein Tools</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contacts</a>
+  </nav>
+
+  <main>
+    <div class="panel">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <h2>Input DNA Sequence</h2>
+            <button class="example-btn" onclick="loadExample()">Load Example Data</button>
+        </div>
+
+        <div class="flex-row">
+            <!-- Left: Text Input -->
+            <div class="flex-col">
+                <textarea id="rawInput" placeholder=">Sequence_ID&#10;ATGC..."></textarea>
+                <div id="statusMsg" class="message"></div>
+            </div>
+
+            <!-- Right: File & NCBI -->
+            <div class="flex-col" style="max-width: 350px;">
+                <label style="font-weight:bold; display:block; margin-bottom:5px;">Upload FASTA File:</label>
+                <input type="file" id="fileInput" accept=".fasta,.fa,.txt" onchange="handleFileUpload()">
+                
+                <label style="font-weight:bold; display:block; margin-top:15px; margin-bottom:5px;">Or Fetch from NCBI:</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="ncbiId" placeholder="Accession ID (e.g. NM_000518)">
+                    <button class="secondary" onclick="fetchNCBI()">Fetch</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Analysis Tools</h2>
+        
+        <div class="tools-buttons">
+            <button onclick="runBasicStats()">Basic Statistics</button>
+            <button onclick="runRevComp()">Reverse Complement</button>
+            <button onclick="runPalindrome()">Find Palindromes</button>
+            <button onclick="runORF()">ORF Finder (6 Frames)</button>
+        </div>
+
+        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+            <label style="font-weight:bold; margin-right: 10px;">Pattern / Motif Search:</label>
+            <div style="display:inline-flex; gap:5px;">
+                <input type="text" id="motifInput" placeholder="e.g. GAATTC" style="width: 200px;">
+                <button onclick="runPatternFind()">Search Motif</button>
+            </div>
+        </div>
+
+        <!-- Result Area -->
+        <div class="result-section">
+            <!-- Terminal Output -->
+            <div class="result-terminal" id="terminalOutput">
+> System Ready.
+> Waiting for input...
+            </div>
+
+            <!-- Chart Area -->
+            <div class="chart-box" id="chartContainer">
+                <h4 style="margin:0 0 10px 0; color:#333;">Nucleotide Distribution</h4>
+                <canvas id="ntChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Download Buttons (Dynamic) -->
+        <div class="downloads-row" id="downloadArea" style="display:none;">
+            <!-- Buttons injected by JS -->
+        </div>
+
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 BioSeqAnalysis | Developed for Bioinformatics Students & Researchers
+  </footer>
+
+  <script>
+    // --- Global State ---
+    let currentSeq = "";
+    let headerInfo = "";
+    let myChart = null; 
+    let lastResultText = "";
+    let orfZipContent = null;
+    let orfCsvContent = "";
+
+    // --- 1. Example Data ---
+    function loadExample() {
+        // E. coli fragment example
+        const example = ">Example_Sequence_E_coli\nATGAGCGACCTTGCGAGAGAAATTACACCGGTCAACATCGAGGAAGAGCTGAAGAGCTCCTATCTGGATATTTTGAACGCGATTTGCCCGCACGGTTTTATCTATGTCGTGGAGTCTGAATTTATTCGTTGGGAAATGGGGCAAGATGCACCAGTGGAATATCTCAATAAACTGATTGACCAAATGCGTTTGATGCGTCTGCACTATCCGGAAGAGATCGCTCCGGTGTTTCAGTCTTATATTAAAGAATACCCAGATTGCAGTGAACTGCGTTAA";
+        document.getElementById('rawInput').value = example;
+        setStatus("Example data loaded.", "success");
+    }
+
+    // --- 2. Input Handling ---
+    function handleFileUpload() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('rawInput').value = e.target.result;
+            setStatus("File loaded successfully.", "success");
+        };
+        reader.readAsText(file);
+    }
+
+    async function fetchNCBI() {
+        const id = document.getElementById('ncbiId').value.trim();
+        if(!id) { setStatus("Please enter an NCBI ID.", "error"); return; }
+        
+        setStatus("Fetching from NCBI...", "success"); // using success style for info
+        
+        try {
+            const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${id}&rettype=fasta&retmode=text`;
+            const response = await fetch(url);
+            if(!response.ok) throw new Error("Network error");
+            const text = await response.text();
+            
+            if(text.includes("Error") || !text.trim()) {
+                setStatus("Invalid ID or not found.", "error");
+            } else {
+                document.getElementById('rawInput').value = text;
+                setStatus("Sequence fetched from NCBI.", "success");
+            }
+        } catch (e) {
+            setStatus("Error fetching data. Ensure CORS/Internet is allowed.", "error");
+        }
+    }
+
+    function setStatus(msg, type) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg;
+        el.className = `message ${type}`;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    // --- 3. Parsing & Validation ---
+    function parseInput() {
+        const raw = document.getElementById('rawInput').value.trim();
+        if (!raw) {
+            printTerminal("Error: No input sequence provided.");
+            return false;
+        }
+
+        if (raw.startsWith(">")) {
+            const lines = raw.split('\n');
+            headerInfo = lines[0].substring(1).trim();
+            currentSeq = lines.slice(1).join('').replace(/[^A-Za-z]/g, '').toUpperCase();
+        } else {
+            headerInfo = "User_Input_Sequence";
+            currentSeq = raw.replace(/[^A-Za-z]/g, '').toUpperCase();
+        }
+
+        // Validate
+        if (/[^ACGTN]/.test(currentSeq)) {
+            printTerminal("Error: Sequence contains invalid characters (Only A, C, G, T, N allowed).");
+            return false;
+        }
+        return true;
+    }
+
+    // --- 4. Basic Statistics ---
+    function runBasicStats() {
+        if (!parseInput()) return;
+        resetUI();
+
+        const len = currentSeq.length;
+        const count = { A:0, T:0, G:0, C:0, N:0 };
+        for (let char of currentSeq) count[char]++;
+
+        const gc = ((count.G + count.C) / len * 100).toFixed(2);
+        const ratio = (count.G + count.C) > 0 ? ((count.A + count.T) / (count.G + count.C)).toFixed(2) : "N/A";
+        
+        // Melting Temp (Approx)
+        let tm = 0;
+        if(len < 14) tm = (count.A+count.T)*2 + (count.G+count.C)*4;
+        else tm = 64.9 + 41 * (count.G + count.C - 16.4) / len;
+
+        let output = `=== BASIC STATISTICS ===
+Seq ID: ${headerInfo}
+Length: ${len} bp
+
+Nucleotide Counts:
+ A: ${count.A}
+ T: ${count.T}
+ G: ${count.G}
+ C: ${count.C}
+ N: ${count.N}
+
+Calculations:
+ %GC Content : ${gc}%
+ AT/GC Ratio : ${ratio}
+ Melting Temp: ~${tm.toFixed(2)} °C
+========================`;
+
+        printTerminal(output);
+        
+        // Draw Chart
+        drawChart(count);
+        
+        // Setup Downloads
+        addDownloadBtn("Download Text Report (.txt)", output, "stats.txt");
+        addChartDownloadBtn();
+    }
+
+    // --- 5. Reverse Complement ---
+    function runRevComp() {
+        if (!parseInput()) return;
+        resetUI();
+
+        const map = { 'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N' };
+        const complementArr = currentSeq.split('').map(c => map[c] || c);
+        const revComp = complementArr.reverse().join('');
+        const compStrand = currentSeq.split('').map(c => map[c] || c).join('');
+
+        let output = `=== REVERSE COMPLEMENT CALCULATOR ===
+Original ID: ${headerInfo}
+
+[5' -> 3'] Reverse Complement:
+${revComp}
+
+[3' -> 5'] Complement Strand (Visual):
+${compStrand}
+=====================================`;
+
+        printTerminal(output);
+        addDownloadBtn("Download Result (.txt)", output, "reverse_complement.txt");
+    }
+
+    // --- 6. Pattern Find ---
+    function runPatternFind() {
+        if (!parseInput()) return;
+        resetUI();
+
+        const motif = document.getElementById('motifInput').value.trim().toUpperCase();
+        if (!motif || /[^ACGTN]/.test(motif)) {
+            printTerminal("Error: Invalid motif sequence.");
+            return;
+        }
+
+        let count = 0;
+        let positions = [];
+        let idx = currentSeq.indexOf(motif);
+
+        while (idx !== -1) {
+            count++;
+            positions.push(idx + 1); // 1-based
+            idx = currentSeq.indexOf(motif, idx + 1);
+        }
+
+        let output = `=== PATTERN SEARCH ===
+Target ID: ${headerInfo}
+Motif    : ${motif}
+
+Status   : ${count > 0 ? "FOUND" : "NOT FOUND"}
+Count    : ${count}
+Positions: ${positions.join(', ') || "None"}
+======================`;
+
+        printTerminal(output);
+        addDownloadBtn("Download Result (.txt)", output, "motif_search.txt");
+    }
+
+    // --- 7. Palindrome Finder ---
+    function runPalindrome() {
+        if (!parseInput()) return;
+        resetUI();
+
+        if (currentSeq.length > 50000 && !confirm("Large sequence. This may take a moment. Continue?")) return;
+
+        let results = [];
+        const map = { 'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N' };
+
+        for (let i = 0; i < currentSeq.length; i++) {
+            for (let len = 4; len <= 12; len++) {
+                if (i + len > currentSeq.length) break;
+                let sub = currentSeq.substr(i, len);
+                let rc = sub.split('').reverse().map(c => map[c]).join('');
+                if (sub === rc) {
+                    results.push({ pos: i + 1, len: len, seq: sub });
+                }
+            }
+        }
+
+        let output = `=== PALINDROME FINDER ===
+Total Found: ${results.length} (Len 4-12)
+
+Pos\tLen\tSequence
+------------------------
+`;
+        results.forEach(r => {
+            output += `${r.pos}\t${r.len}\t${r.seq}\n`;
+        });
+        
+        printTerminal(output);
+        addDownloadBtn("Download Result (.txt)", output, "palindromes.txt");
+    }
+
+    // --- 8. ORF Finder (6 Frames + Zip + CSV) ---
+    function runORF() {
+        if (!parseInput()) return;
+        resetUI();
+
+        const minLen = 30; // Min bp length
+        const map = { 'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N' };
+        
+        // Prepare strands
+        const seqFwd = currentSeq;
+        const seqRev = currentSeq.split('').reverse().map(c => map[c]).join('');
+
+        let orfs = [];
+
+        function findOrfs(sequence, strandSign) {
+            const stops = ['TAA', 'TAG', 'TGA'];
+            const start = 'ATG';
+            
+            for (let frame = 0; frame < 3; frame++) {
+                let startIndices = [];
+                for (let i = frame; i < sequence.length - 2; i += 3) {
+                    let codon = sequence.substr(i, 3);
+                    if (codon === start) {
+                        startIndices.push(i);
+                    } else if (stops.includes(codon)) {
+                        // Found stop, match with all active starts
+                        while (startIndices.length > 0) {
+                            let sIndex = startIndices.shift();
+                            let orfSeq = sequence.substring(sIndex, i + 3);
+                            if (orfSeq.length >= minLen) {
+                                orfs.push({
+                                    frame: (strandSign === '+') ? frame + 1 : -(frame + 1),
+                                    len: orfSeq.length,
+                                    seq: orfSeq,
+                                    gc: (orfSeq.split('').filter(c => c==='G'||c==='C').length / orfSeq.length * 100).toFixed(2)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        findOrfs(seqFwd, '+');
+        findOrfs(seqRev, '-');
+
+        if (orfs.length === 0) {
+            printTerminal("No ORFs found (Min length 30bp).");
+            return;
+        }
+
+        // Generate Zip and CSV
+        let zip = new JSZip();
+        let csv = "ORF_ID,Frame,Length,GC_Percent,Sequence\n";
+        let display = `=== ORF FINDER RESULTS ===\nTotal Found: ${orfs.length}\n\nID\tFrame\tLen\tGC%\n`;
+
+        orfs.forEach((o, idx) => {
+            let id = `ORF_${idx + 1}`;
+            // Add to Zip
+            zip.file(`${id}.fasta`, `>${id} Frame:${o.frame} Length:${o.len} GC:${o.gc}%\n${o.seq}`);
+            // Add to CSV
+            csv += `${id},${o.frame},${o.len},${o.gc},${o.seq}\n`;
+            // Add to Display (limit first 15)
+            if (idx < 15) display += `${id}\t${o.frame}\t${o.len}\t${o.gc}\n`;
+        });
+
+        if (orfs.length > 15) display += `...and ${orfs.length - 15} more.`;
+        
+        // Add CSV to zip too
+        zip.file("orf_data.csv", csv);
+
+        orfZipContent = zip;
+        orfCsvContent = csv;
+
+        printTerminal(display);
+
+        // Add Download Buttons
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+
+        // Zip Button
+        let btnZip = document.createElement('button');
+        btnZip.innerText = "Download All ORFs (.zip)";
+        btnZip.onclick = function() {
+            orfZipContent.generateAsync({type:"blob"}).then(function(content) {
+                downloadBlob(content, "orf_sequences.zip");
+            });
+        };
+        area.appendChild(btnZip);
+
+        // CSV Button
+        let btnCsv = document.createElement('button');
+        btnCsv.innerText = "Download Data (.csv)";
+        btnCsv.style.background = "#5cb85c";
+        btnCsv.onclick = function() {
+            downloadBlob(new Blob([orfCsvContent], {type: 'text/csv'}), "orf_analysis.csv");
+        };
+        area.appendChild(btnCsv);
+    }
+
+
+    // --- UI Utilities ---
+
+    function resetUI() {
+        document.getElementById('chartContainer').style.display = 'none';
+        document.getElementById('downloadArea').innerHTML = '';
+        document.getElementById('downloadArea').style.display = 'none';
+        if(myChart) { myChart.destroy(); myChart = null; }
+    }
+
+    function printTerminal(text) {
+        document.getElementById('terminalOutput').innerText = text;
+        lastResultText = text;
+    }
+
+    function drawChart(counts) {
+        document.getElementById('chartContainer').style.display = 'flex';
+        const ctx = document.getElementById('ntChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['A', 'T', 'G', 'C'],
+                datasets: [{
+                    data: [counts.A, counts.T, counts.G, counts.C],
+                    backgroundColor: ['#e74c3c', '#3498db', '#9b59b6', '#f1c40f']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    // --- Helper for Downloads ---
+    function addDownloadBtn(label, content, filename) {
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+        
+        let btn = document.createElement('button');
+        btn.innerText = label;
+        btn.onclick = function() {
+            downloadBlob(new Blob([content], {type: 'text/plain'}), filename);
+        };
+        area.appendChild(btn);
+    }
+
+    function addChartDownloadBtn() {
+        const area = document.getElementById('downloadArea');
+        let btn = document.createElement('button');
+        btn.innerText = "Download Pie Chart (.png)";
+        btn.style.background = "#5bc0de";
+        btn.onclick = function() {
+            let a = document.createElement('a');
+            a.href = myChart.toBase64Image();
+            a.download = "nucleotide_chart.png";
+            a.click();
+        };
+        area.appendChild(btn);
+    }
+
+    function downloadBlob(blob, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    }
+
+  </script>
+</body>
+</html>

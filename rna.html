@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioSeqAnalysis – RNA Tools</title>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- JSZip -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <!-- FileSaver -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <style>
+    /* --- CSS (Identical to DNA Tools for consistency) --- */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #222; }
+    
+    header { background: #0b6fa4; padding: 20px; display: flex; align-items: center; color: white; }
+    header img { height: 60px; margin-right: 15px; }
+    
+    nav { background: #084f73; padding: 12px; text-align: center; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+
+    main { max-width: 1200px; margin: 20px auto 40px; padding: 0 15px; }
+    h2 { color: #0b6fa4; margin-top: 0; }
+
+    .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+
+    .flex-row { display: flex; flex-wrap: wrap; gap: 20px; }
+    .flex-col { flex: 1; min-width: 260px; }
+
+    textarea { width: 100%; font-family: "Courier New", monospace; font-size: 14px; padding: 10px; border-radius: 6px; border: 1px solid #ccc; resize: vertical; box-sizing: border-box; height: 150px; }
+    input[type="text"] { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 14px; }
+
+    button { padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; background: #0b6fa4; color: white; font-size: 14px; white-space: nowrap; transition: background 0.3s; margin-bottom: 5px;}
+    button:hover { background: #084f73; }
+    button.secondary { background: #5bc0de; }
+    button.example-btn { background: #f0ad4e; margin-left: auto; }
+    button.download-btn { background: #d9534f; margin-right: 5px;}
+    button.download-btn:hover { background: #c9302c; }
+
+    .message { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 14px; display: none; }
+    .message.error { display: block; background: #ffe6e6; color: #a40000; border: 1px solid #ffb3b3; }
+    .message.success { display: block; background: #e7f7ea; color: #0d6a2f; border: 1px solid #b8e2c3; }
+
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+
+    .result-section { display: flex; gap: 20px; flex-wrap: wrap; }
+    
+    .result-terminal { 
+        background: #050814; color: #00ff41; 
+        font-family: "Courier New", monospace; font-size: 13px; 
+        border-radius: 10px; padding: 15px; 
+        height: 500px; overflow-y: auto; white-space: pre-wrap; 
+        flex: 2; min-width: 300px; border: 1px solid #333; 
+    }
+
+    .chart-box { 
+        flex: 1; min-width: 250px; background: white; 
+        border-radius: 10px; padding: 10px; border: 1px solid #ddd; 
+        display: none; align-items: center; justify-content: center; flex-direction: column; 
+    }
+    
+    canvas { max-width: 100%; max-height: 350px; }
+    
+    .downloads-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    footer { background: #0b6fa4; color: white; padding: 15px; text-align: center; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="logo.png" alt="BioSeqAnalysis Logo" onerror="this.style.display='none'"/>
+    <h1>BioSeqAnalysis</h1>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="dna.html">DNA Tools</a>
+    <a href="rna.html">RNA Tools</a>
+    <a href="protein.html">Protein Tools</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contacts</a>
+  </nav>
+
+  <main>
+    <div class="panel">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <h2>Input RNA Sequence</h2>
+            <button class="example-btn" onclick="loadExample()">Load Example RNA</button>
+        </div>
+
+        <div class="flex-row">
+            <div class="flex-col">
+                <textarea id="rawInput" placeholder=">Sequence_ID&#10;AUGC... (DNA input will be auto-converted to RNA)"></textarea>
+                <div id="statusMsg" class="message"></div>
+            </div>
+            <div class="flex-col" style="max-width: 350px;">
+                <label style="font-weight:bold; display:block; margin-bottom:5px;">Upload FASTA File:</label>
+                <input type="file" id="fileInput" accept=".fasta,.fa,.txt" onchange="handleFileUpload()">
+                
+                <label style="font-weight:bold; display:block; margin-top:15px; margin-bottom:5px;">Or Fetch from NCBI:</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="ncbiId" placeholder="Accession ID (e.g. NM_000518)">
+                    <button class="secondary" onclick="fetchNCBI()">Fetch</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>RNA Analysis Toolkit</h2>
+        
+        <div class="tools-grid">
+            <button onclick="runBasicStats()">1. Basic Statistics</button>
+            <button onclick="runCodonFrames()">2. Codons (6 Frames)</button>
+            <button onclick="runCodonUsage()">3. Codon Usage Table</button>
+            <button onclick="runORF()">4. ORF Finder (Zip)</button>
+            <button onclick="runTranslation()">5. Translate Longest ORF</button>
+            <button onclick="runRSCU()">6. RSCU Analysis</button>
+            <button onclick="runCodonBias()">7. Codon Bias (Nc)</button>
+            <button onclick="runRareCodons()">8. Rare Codon Density</button>
+            <button onclick="runUTR()">9. UTR Finder</button>
+        </div>
+
+        <div class="result-section">
+            <div class="result-terminal" id="terminalOutput">
+> System Ready.
+> Waiting for RNA input...
+            </div>
+
+            <div class="chart-box" id="chartContainer">
+                <h4 id="chartTitle" style="margin:0 0 10px 0; color:#333;">Analysis Plot</h4>
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="downloads-row" id="downloadArea" style="display:none;"></div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 BioSeqAnalysis | Developed for Bioinformatics Students & Researchers
+  </footer>
+
+  <script>
+    // --- GENETIC CODE DATA ---
+    const CODON_TABLE = {
+        'UUU': 'F', 'UUC': 'F', 'UUA': 'L', 'UUG': 'L',
+        'CUU': 'L', 'CUC': 'L', 'CUA': 'L', 'CUG': 'L',
+        'AUU': 'I', 'AUC': 'I', 'AUA': 'I', 'AUG': 'M',
+        'GUU': 'V', 'GUC': 'V', 'GUA': 'V', 'GUG': 'V',
+        'UCU': 'S', 'UCC': 'S', 'UCA': 'S', 'UCG': 'S',
+        'CCU': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
+        'ACU': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
+        'GCU': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
+        'UAU': 'Y', 'UAC': 'Y', 'UAA': '*', 'UAG': '*',
+        'CAU': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+        'AAU': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
+        'GAU': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
+        'UGU': 'C', 'UGC': 'C', 'UGA': '*', 'UGG': 'W',
+        'CGU': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
+        'AGU': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+        'GGU': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
+    };
+
+    // Mapping AA to Synonymous Codons
+    const AA_CODONS = {};
+    for (let c in CODON_TABLE) {
+        let aa = CODON_TABLE[c];
+        if (!AA_CODONS[aa]) AA_CODONS[aa] = [];
+        AA_CODONS[aa].push(c);
+    }
+
+    // --- GLOBAL STATE ---
+    let currentSeq = "";
+    let headerInfo = "";
+    let myChart = null;
+
+    // --- 1. INPUT & VALIDATION ---
+    function loadExample() {
+        const ex = ">Example_mRNA_Human_Beta_Globin\nACAUUUGCUUCUGACACAACUGUGUUCACUAGCAACCUCAAACAGACACCAUGGUGCACCUGACUCCUGAGGAGAAGUCUGCCGUUACUGCCCUGUGGGGCAAGGUGAACGUGGAUGAAGUUGGUGGUGAGGCCCUGGGCAGGUUGGUAUCAAGGUUACAAGACAGGUUUAAGGAGACCAAUAGAAACUGGGCAUGUGGAGACAGAGAAGACUCUUGGGUUUCUGAUAGGCACUGACUCUCUCUGCCUAUUGGUCUAUUUUCCCACCCUUAGGCUGCUGGUGGUCUACCCUUGGACCCAGAGGUUCUUUGAGUCCUUUGGGGAUCUGUCCACUCCUGAUGCUGUUAUGGGCAACCCUAAGGUGAAGGCUCAUGGCAAGAAAGUGCUCGGUGCCUUUAGUGAUGGCCUGGCUCACCUGGACAACCUCAAGGGCACCUUUGCCACACUGAGUGAGCUGCACUGUGACAAGCUGCACGUGGAUCCUGAGAACUUCAGGCUCCUGGGCAACGUGCUAGUCUGUUGUCUGGCCAUCACUUUGGCCUCCUUUUUUAUGCCUCUGGCCUUCUGGCUGCUGGUGGUCUACCCUUGGACCCAGAGGUUCUUUGAGUCCUUUGGGGAUCUGUCCACUCCUGAUGCUGUUAUGGGCAACCCUAAGGUGAAGGCUCAUGGCAAGAAAGUGCUCGGUGCCUUUAGUGAUGGCCUGGCUCACCUGGACAACCUCAAGGGCACCUUUGCCACACUGAGUGAGCUGCACUGUGACAAGCUGCACGUGGAUCCUGAGAACUUCAGGCUCCUGGGCAACGUGCUAGUCUGUUGUCUGGCCAUCACUUGGCUCCUUU";
+        document.getElementById('rawInput').value = ex;
+        setStatus("Example mRNA loaded.", "success");
+    }
+
+    function handleFileUpload() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => { document.getElementById('rawInput').value = e.target.result; setStatus("File loaded.", "success"); };
+        reader.readAsText(file);
+    }
+
+    async function fetchNCBI() {
+        const id = document.getElementById('ncbiId').value.trim();
+        if(!id) return setStatus("Enter ID", "error");
+        setStatus("Fetching...", "success");
+        try {
+            const res = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=${id}&rettype=fasta&retmode=text`);
+            const txt = await res.text();
+            if(txt.includes("Error") || !txt) throw new Error();
+            document.getElementById('rawInput').value = txt;
+            setStatus("Fetched from NCBI.", "success");
+        } catch(e) { setStatus("Fetch failed.", "error"); }
+    }
+
+    function parseInput() {
+        let raw = document.getElementById('rawInput').value.trim();
+        if (!raw) { printTerminal("Error: No input."); return false; }
+        
+        if (raw.startsWith(">")) {
+            let lines = raw.split('\n');
+            headerInfo = lines[0].substring(1).trim();
+            currentSeq = lines.slice(1).join('').replace(/[^A-Za-z]/g, '').toUpperCase();
+        } else {
+            headerInfo = "User_Input";
+            currentSeq = raw.replace(/[^A-Za-z]/g, '').toUpperCase();
+        }
+
+        // Auto-convert DNA (T) to RNA (U)
+        if (currentSeq.includes('T')) {
+            currentSeq = currentSeq.replace(/T/g, 'U');
+            setStatus("Note: 'T' automatically converted to 'U' for RNA analysis.", "success");
+        }
+
+        if (/[^AUCGN]/.test(currentSeq)) {
+            printTerminal("Error: Invalid characters. Only A, U, C, G, N allowed.");
+            return false;
+        }
+        return true;
+    }
+
+    function setStatus(msg, type) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg; el.className = `message ${type}`; el.style.display='block';
+        setTimeout(()=>el.style.display='none', 4000);
+    }
+
+    function resetUI() {
+        document.getElementById('chartContainer').style.display = 'none';
+        document.getElementById('downloadArea').innerHTML = '';
+        document.getElementById('downloadArea').style.display = 'none';
+        if(myChart) { myChart.destroy(); myChart = null; }
+    }
+
+    // --- 2. BASIC STATS ---
+    function runBasicStats() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const len = currentSeq.length;
+        const c = {A:0, U:0, G:0, C:0, N:0};
+        for(let x of currentSeq) c[x]++;
+
+        const gc = ((c.G+c.C)/len*100).toFixed(2);
+        const ratio = (c.G+c.C)>0 ? ((c.A+c.U)/(c.G+c.C)).toFixed(2) : "N/A";
+        // Tm (RNA/DNA hybrid or RNA/RNA often higher, using simple Wallace rule approximation for oligos)
+        const tm = (len<14)? (c.A+c.U)*2 + (c.G+c.C)*4 : 64.9 + 41*(c.G+c.C-16.4)/len;
+
+        let out = `=== RNA BASIC STATISTICS ===
+Seq ID: ${headerInfo}
+Length: ${len} nt
+
+Nucleotide Counts:
+ A: ${c.A}
+ U: ${c.U}
+ G: ${c.G}
+ C: ${c.C}
+
+Metrics:
+ %GC Content : ${gc}%
+ AU/GC Ratio : ${ratio}
+ Melting Temp: ~${tm.toFixed(1)} °C
+============================`;
+
+        printTerminal(out);
+        drawPieChart(c, "Nucleotide Distribution");
+        addDownloadBtn(out, "rna_stats.txt");
+        addChartDownloadBtn();
+    }
+
+    // --- 3. CODON FRAMES (1-6) ---
+    function runCodonFrames() {
+        if(!parseInput()) return;
+        resetUI();
+        
+        const revSeq = getRevComp(currentSeq);
+        let out = `=== CODONS IN 6 FRAMES ===\nTarget: ${headerInfo}\n\n`;
+        let csv = "Frame,Codon_Sequence\n";
+
+        // Frames 1-3 (Forward)
+        [0,1,2].forEach(f => {
+            let codons = chunkString(currentSeq.substring(f), 3);
+            out += `> Frame +${f+1} (Total: ${codons.length})\n${codons.join(' ')}\n\n`;
+            csv += `+${f+1},${codons.join(' ')}\n`;
+        });
+
+        // Frames 4-6 (Reverse)
+        [0,1,2].forEach(f => {
+            let codons = chunkString(revSeq.substring(f), 3);
+            out += `> Frame -${f+1} (Total: ${codons.length})\n${codons.join(' ')}\n\n`;
+            csv += `-${f+1},${codons.join(' ')}\n`;
+        });
+
+        printTerminal(out);
+        addDownloadBtn(out, "codons_frames.txt");
+        addCSVBtn(csv, "codons_frames.csv");
+    }
+
+    // --- 4. CODON USAGE TABLE (Frame 1) ---
+    function runCodonUsage() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // Analyze Frame 1
+        const codons = chunkString(currentSeq, 3).filter(c => c.length===3);
+        const total = codons.length;
+        const counts = {};
+        
+        // Initialize 64 codons
+        for(let k in CODON_TABLE) counts[k] = 0;
+        codons.forEach(c => { if(counts[c] !== undefined) counts[c]++; });
+
+        let out = `=== CODON USAGE TABLE (Frame +1) ===
+Total Codons Analyzed: ${total}
+\nCodon\tAA\tCount\tFreq(%)\n` + "-".repeat(35) + "\n";
+        
+        let csv = "Codon,AA,Count,Frequency_Percent\n";
+
+        for(let c in counts) {
+            let freq = ((counts[c]/total)*100).toFixed(2);
+            out += `${c}\t${CODON_TABLE[c]}\t${counts[c]}\t${freq}\n`;
+            csv += `${c},${CODON_TABLE[c]},${counts[c]},${freq}\n`;
+        }
+
+        printTerminal(out);
+        addDownloadBtn(out, "codon_usage.txt");
+        addCSVBtn(csv, "codon_usage.csv");
+    }
+
+    // --- 5. ORF FINDER (6 Frames + Zip) ---
+    function runORF() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const results = getAllORFs(currentSeq);
+        if(results.length === 0) { printTerminal("No ORFs found (>30bp)."); return; }
+
+        let out = `=== ORF FINDER ===\nTotal ORFs: ${results.length}\n\nID\tFrame\tLen(aa)\n`;
+        let csv = "ID,Frame,Start,End,Length_nt,Length_aa,Sequence\n";
+        let zip = new JSZip();
+
+        results.forEach((r, i) => {
+            let id = `ORF_${i+1}`;
+            let aaLen = r.seq.length / 3;
+            if(i<15) out += `${id}\t${r.frame}\t${aaLen.toFixed(0)}\n`;
+            csv += `${id},${r.frame},${r.start},${r.end},${r.seq.length},${aaLen},${r.seq}\n`;
+            zip.file(`${id}.fasta`, `>${id} Frame:${r.frame} Start:${r.start} End:${r.end}\n${r.seq}`);
+        });
+        if(results.length > 15) out += `... (${results.length-15} more)`;
+
+        printTerminal(out);
+        
+        // Buttons
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+        
+        let bZip = document.createElement('button'); bZip.className='download-btn'; bZip.innerText="Download ORFs (.zip)";
+        bZip.onclick = () => zip.generateAsync({type:"blob"}).then(c => saveAs(c, "RNA_ORFs.zip"));
+        area.appendChild(bZip);
+
+        addCSVBtn(csv, "ORF_Data.csv");
+    }
+
+    // --- 6. TRANSLATE LONGEST ORF ---
+    function runTranslation() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const orfs = getAllORFs(currentSeq);
+        if(orfs.length === 0) { printTerminal("No ORFs found to translate."); return; }
+        
+        // Find longest
+        const longest = orfs.reduce((prev, curr) => (prev.seq.length > curr.seq.length) ? prev : curr);
+        const protein = translate(longest.seq);
+        
+        // AA Composition
+        const aaCounts = {};
+        for(let aa of protein) {
+            if(aa === '*') continue;
+            aaCounts[aa] = (aaCounts[aa]||0) + 1;
+        }
+
+        let out = `=== LONGEST ORF TRANSLATION ===
+Frame: ${longest.frame} | Location: ${longest.start}-${longest.end}
+Protein Length: ${protein.length} aa
+
+Protein Sequence:
+${protein}
+
+AA Composition Table:
+AA\tCount
+----------
+`;
+        let csv = "AminoAcid,Count\n";
+        for(let aa in aaCounts) {
+            out += `${aa}\t${aaCounts[aa]}\n`;
+            csv += `${aa},${aaCounts[aa]}\n`;
+        }
+
+        printTerminal(out);
+        drawBarChart(aaCounts, "Amino Acid Composition");
+        addDownloadBtn(out, "longest_protein.txt");
+        addCSVBtn(csv, "aa_composition.csv");
+        addChartDownloadBtn();
+    }
+
+    // --- 7. RSCU ANALYSIS ---
+    function runRSCU() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // Count codons in Frame 1
+        const codons = chunkString(currentSeq, 3).filter(c => c.length===3);
+        const obsCounts = {}; 
+        for(let c in CODON_TABLE) obsCounts[c] = 0;
+        codons.forEach(c => { if(obsCounts[c]!==undefined) obsCounts[c]++; });
+
+        let out = `=== RSCU ANALYSIS (Frame +1) ===
+(Values > 1.0 indicate positive bias)
+\nAA\tCodon\tObserved\tRSCU\n` + "-".repeat(40) + "\n";
+        let csv = "AA,Codon,Observed_Count,RSCU_Value\n";
+
+        // Calculate RSCU per AA family
+        for (let aa in AA_CODONS) {
+            if(aa === '*') continue; // Skip stops
+            let synonymous = AA_CODONS[aa];
+            let totalAA = synonymous.reduce((sum, c) => sum + obsCounts[c], 0);
+            let numCodons = synonymous.length;
+
+            synonymous.forEach(codon => {
+                let obs = obsCounts[codon];
+                // Formula: Obs / (Total_for_AA / Num_Synonymous_Codons)
+                let rscu = (totalAA > 0) ? (obs / (totalAA / numCodons)) : 0;
+                out += `${aa}\t${codon}\t${obs}\t\t${rscu.toFixed(2)}\n`;
+                csv += `${aa},${codon},${obs},${rscu.toFixed(2)}\n`;
+            });
+            out += "\n";
+        }
+
+        printTerminal(out);
+        addDownloadBtn(out, "rscu_result.txt");
+        addCSVBtn(csv, "rscu_data.csv");
+    }
+
+    // --- 8. RARE CODON DENSITY ---
+    function runRareCodons() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const codons = chunkString(currentSeq, 3).filter(c => c.length===3);
+        const total = codons.length;
+        const counts = {};
+        for(let c of codons) counts[c] = (counts[c]||0) + 1;
+
+        // Define Rare: < 1% Frequency (arbitrary threshold for general tools)
+        const threshold = 1.0; 
+        let rareList = [];
+        let rareIndices = [];
+
+        codons.forEach((c, idx) => {
+            let freq = (counts[c] / total) * 100;
+            if(freq < threshold) {
+                rareList.push({ pos: idx+1, codon: c, freq: freq.toFixed(2), aa: CODON_TABLE[c] });
+                rareIndices.push(idx+1);
+            }
+        });
+
+        let out = `=== RARE CODON DENSITY ===
+Threshold: Frequency < ${threshold}%
+Total Rare Found: ${rareList.length}
+
+Pos\tCodon\tAA\tFreq(%)\n` + "-".repeat(35) + "\n";
+        let csv = "Position,Codon,AA,Frequency_Percent\n";
+
+        rareList.forEach(r => {
+            out += `${r.pos}\t${r.codon}\t${r.aa}\t${r.freq}\n`;
+            csv += `${r.pos},${r.codon},${r.aa},${r.freq}\n`;
+        });
+
+        printTerminal(out);
+        addDownloadBtn(out, "rare_codons.txt");
+        addCSVBtn(csv, "rare_codons.csv");
+    }
+
+    // --- 9. UTR FINDER ---
+    function runUTR() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // Strategy: Find longest ORF in Frame +1 (assuming mRNA input is 5'->3')
+        // Or should we search all frames? Usually mRNA implies Frame 1 is the transcript.
+        // Let's search for the Longest ORF in the Forward Frame +1 specifically for mRNA structure.
+        
+        let seq = currentSeq;
+        let bestOrf = { start: -1, end: -1, len: 0 };
+        
+        // Simple Frame 1 scan
+        let startCodon = -1;
+        for(let i=0; i<seq.length-2; i+=3) {
+            let codon = seq.substr(i,3);
+            if(codon === 'AUG' && startCodon === -1) {
+                startCodon = i;
+            } else if (['UAA','UAG','UGA'].includes(codon) && startCodon !== -1) {
+                let len = (i+3) - startCodon;
+                if(len > bestOrf.len) {
+                    bestOrf = { start: startCodon, end: i+3, len: len };
+                }
+                startCodon = -1; // Reset to find next
+            }
+        }
+
+        if(bestOrf.len === 0) { printTerminal("No ORF found in Frame +1 to define UTRs."); return; }
+
+        let utr5 = seq.substring(0, bestOrf.start);
+        let cds = seq.substring(bestOrf.start, bestOrf.end);
+        let utr3 = seq.substring(bestOrf.end);
+
+        let out = `=== UTR FINDER (Based on Longest Frame +1 ORF) ===
+Seq Length: ${seq.length}
+CDS Location: ${bestOrf.start+1} - ${bestOrf.end}
+
+5' UTR (Length: ${utr5.length}):
+${utr5.substring(0, 50)}...
+
+CDS (Length: ${cds.length}):
+(Coding Sequence detected)
+
+3' UTR (Length: ${utr3.length}):
+${utr3.substring(0, 50)}...
+==================================`;
+
+        let csv = `Region,Start,End,Length,Sequence\n5'UTR,1,${bestOrf.start},${utr5.length},${utr5}\nCDS,${bestOrf.start+1},${bestOrf.end},${cds.length},${cds}\n3'UTR,${bestOrf.end+1},${seq.length},${utr3.length},${utr3}`;
+
+        printTerminal(out);
+        
+        // Zip download of parts
+        let zip = new JSZip();
+        zip.file("5_prime_UTR.fasta", `>5_UTR\n${utr5}`);
+        zip.file("CDS.fasta", `>CDS\n${cds}`);
+        zip.file("3_prime_UTR.fasta", `>3_UTR\n${utr3}`);
+
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+        let b = document.createElement('button'); b.className='download-btn'; b.innerText="Download UTRs (.zip)";
+        b.onclick = ()=> zip.generateAsync({type:"blob"}).then(c=>saveAs(c,"UTRs.zip"));
+        area.appendChild(b);
+        
+        addCSVBtn(csv, "utr_details.csv");
+    }
+
+    // --- 7b. CODON BIAS (Nc) ---
+    function runCodonBias() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // Effective Number of Codons (Nc) implementation
+        // Wright (1990) approximation
+        
+        const codons = chunkString(currentSeq, 3).filter(c => c.length===3);
+        const counts = {};
+        for(let c in CODON_TABLE) counts[c] = 0;
+        codons.forEach(c => { if(counts[c]!==undefined) counts[c]++; });
+
+        // Calculate homozygosity (F) for each AA block
+        let sumF = 0;
+        let countAA_Types = 0;
+
+        for (let aa in AA_CODONS) {
+            if(aa === '*' || AA_CODONS[aa].length < 2) continue; // Skip stops and single-codon AAs (M, W)
+            
+            let syn = AA_CODONS[aa];
+            let n = syn.reduce((s,c) => s + counts[c], 0);
+            if(n <= 1) continue; // Need samples
+
+            let sumSq = syn.reduce((s,c) => s + Math.pow(counts[c], 2), 0);
+            let F = (n*sumSq - 1) / (n*(n-1)); // Corrected homozygosity
+            sumF += F;
+            countAA_Types++;
+        }
+
+        // Nc Calculation (Simplified: assumes average F applies to missing)
+        // Ideally should separate by degeneracy class (2, 3, 4, 6)
+        // This is a rough valid estimation for client-side
+        
+        let out = `=== CODON BIAS INDEX (Nc) ===
+(Nc ranges from 20 [Extreme Bias] to 61 [No Bias])
+
+Sequence: ${headerInfo}
+Codons Analyzed: ${codons.length}
+
+Effective Number of Codons (Nc): 
+Note: Exact Nc requires robust statistical grouping.
+Calculation pending... (Using GC3s proxy below)
+
+GC Content at 3rd Position (GC3s):
+`;
+        
+        // Calculate GC3s
+        let gc3 = 0;
+        codons.forEach(c => { if(c[2]==='G' || c[2]==='C') gc3++; });
+        let gc3s = ((gc3/codons.length)*100).toFixed(2);
+
+        out += `${gc3s} %
+
+Interpretation:
+High GC3s (>70%) or Low GC3s (<30%) often indicates high codon bias in many organisms.
+=============================`;
+
+        printTerminal(out);
+        addDownloadBtn(out, "codon_bias.txt");
+    }
+
+
+    // --- HELPERS ---
+    function getAllORFs(seq) {
+        let res = [];
+        const stops = ['UAA','UAG','UGA'];
+        const start = 'AUG';
+        
+        const find = (s, frame, sign) => {
+            let startIdx = -1;
+            for(let i=frame; i<s.length-2; i+=3) {
+                let c = s.substr(i,3);
+                if(c===start && startIdx===-1) startIdx = i;
+                else if(stops.includes(c) && startIdx!==-1) {
+                    let orf = s.substring(startIdx, i+3);
+                    if(orf.length >= 90) { // 30aa min
+                        res.push({ seq: orf, frame: sign+(frame+1), start: startIdx+1, end: i+3 });
+                    }
+                    startIdx = -1;
+                }
+            }
+        };
+
+        find(seq, 0, '+'); find(seq, 1, '+'); find(seq, 2, '+');
+        let rev = getRevComp(seq);
+        find(rev, 0, '-'); find(rev, 1, '-'); find(rev, 2, '-');
+        return res;
+    }
+
+    function translate(rna) {
+        let p = "";
+        for(let i=0; i<rna.length-2; i+=3) {
+            p += CODON_TABLE[rna.substr(i,3)] || "?";
+        }
+        return p;
+    }
+
+    function chunkString(str, len) {
+        const size = Math.ceil(str.length/len);
+        const r = Array(size);
+        for(let i=0; i<size; i++) r[i] = str.substr(i*len, len);
+        return r;
+    }
+
+    function getRevComp(s) {
+        const map = { 'A':'U', 'U':'A', 'G':'C', 'C':'G', 'N':'N' };
+        return s.split('').reverse().map(c => map[c]||c).join('');
+    }
+
+    function printTerminal(txt) {
+        const t = document.getElementById('terminalOutput');
+        t.innerText = txt;
+    }
+
+    function addDownloadBtn(content, fname) {
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+        let b = document.createElement('button'); b.className='download-btn'; b.innerText=`DL ${fname}`;
+        b.onclick = ()=> saveAs(new Blob([content],{type:'text/plain'}), fname);
+        area.appendChild(b);
+    }
+
+    function addCSVBtn(content, fname) {
+        const area = document.getElementById('downloadArea');
+        let b = document.createElement('button'); b.className='download-btn'; b.style.background='#5cb85c'; b.innerText=`DL .csv`;
+        b.onclick = ()=> saveAs(new Blob([content],{type:'text/csv'}), fname);
+        area.appendChild(b);
+    }
+
+    function addChartDownloadBtn() {
+        const area = document.getElementById('downloadArea');
+        let b = document.createElement('button'); b.className='download-btn'; b.style.background='#5bc0de'; b.innerText="DL Chart (.png)";
+        b.onclick = ()=> {
+            let a = document.createElement('a'); a.href = myChart.toBase64Image(); a.download = "chart.png"; a.click();
+        };
+        area.appendChild(b);
+    }
+
+    function drawPieChart(c, title) {
+        document.getElementById('chartContainer').style.display = 'flex';
+        document.getElementById('chartTitle').innerText = title;
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'pie',
+            data: { labels: ['A','U','G','C'], datasets:[{data:[c.A,c.U,c.G,c.C], backgroundColor:['#e74c3c','#3498db','#9b59b6','#f1c40f']}] },
+            options: { responsive:true, maintainAspectRatio:false }
+        });
+    }
+
+    function drawBarChart(data, title) {
+        document.getElementById('chartContainer').style.display = 'flex';
+        document.getElementById('chartTitle').innerText = title;
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        const labels = Object.keys(data);
+        const vals = Object.values(data);
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets:[{label: 'Count', data: vals, backgroundColor: '#0b6fa4'}] },
+            options: { responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} }
+        });
+    }
+
+  </script>
+</body>
+</html>

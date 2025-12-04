@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioSeqAnalysis - Home</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #222;
+    }
+
+    header {
+      background: #0b6fa4;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      color: white;
+    }
+
+    header img {
+      height: 60px;
+      margin-right: 15px;
+    }
+
+    nav {
+      background: #084f73;
+      padding: 12px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .hero {
+      padding: 60px 20px;
+      text-align: center;
+      background: white;
+      border-bottom: 2px solid #d0d0d0;
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      color: #0b6fa4;
+    }
+
+    .hero p {
+      font-size: 20px;
+      color: #444;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      padding: 40px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .card h3 {
+      color: #0b6fa4;
+    }
+
+    .card p {
+      color: #555;
+    }
+
+    .card a {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 14px;
+      background: #0b6fa4;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+
+    .card a:hover {
+      background: #084f73;
+    }
+
+    footer {
+      background: #0b6fa4;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header with Logo -->
+  <header>
+    <img src="logo.png" alt="BioSeqAnalysis Logo" />
+    <h1>BioSeqAnalysis</h1>
+  </header>
+
+  <!-- Navigation Menu -->
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="dna.html">DNA Tools</a>
+    <a href="rna.html">RNA Tools</a>
+    <a href="protein.html">Protein Tools</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contacts</a>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>Welcome to BioSeqAnalysis</h1>
+    <p>A web-based platform for DNA, RNA, and Protein sequence analysis and properties.</p>
+    <p>All tools are browser-based and run instantly with clean, interactive interfaces.</p>
+  </section>
+
+  <!-- Tools Overview Cards -->
+  <section class="cards">
+
+    <div class="card">
+      <h3>DNA Sequence Tools</h3>
+      <p>Analyze GC%, composition, reverse complement, translation, ORFs and more.</p>
+      <a href="dna.html">Open DNA Tools</a>
+    </div>
+
+    <div class="card">
+      <h3>RNA Sequence Tools</h3>
+      <p>Convert sequences, analyze base composition, and translate mRNA.</p>
+      <a href="rna.html">Open RNA Tools</a>
+    </div>
+
+    <div class="card">
+      <h3>Protein Sequence Tools</h3>
+      <p>Calculate molecular weight, amino acid composition, hydropathy plots, motifs.</p>
+      <a href="protein.html">Open Protein Tools</a>
+    </div>
+
+    <div class="card">
+      <h3>Documentation</h3>
+      <p>Know how the algorithms work: translation rules, hydropathy, ORFs and more.</p>
+      <a href="about.html">View Documentation</a>
+    </div>
+
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    © 2025 BioSeqAnalysis | Developed for Bioinformatics Students & Researchers
+  </footer>
+
+</body>
+</html>

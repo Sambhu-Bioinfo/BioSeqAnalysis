@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioSeqAnalysis – About</title>
+  
+  <!-- MathJax for beautiful formulas -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    /* --- CSS (Identical to other pages) --- */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #222; line-height: 1.6; }
+    
+    header { background: #0b6fa4; padding: 20px; display: flex; align-items: center; color: white; }
+    header img { height: 60px; margin-right: 15px; }
+    
+    nav { background: #084f73; padding: 12px; text-align: center; position: sticky; top: 0; z-index: 100; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+
+    main { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+
+    /* --- Documentation Specific Styles --- */
+    .doc-section {
+      background: white;
+      padding: 40px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    h1.page-title { color: #0b6fa4; border-bottom: 2px solid #ddd; padding-bottom: 15px; margin-bottom: 20px; }
+    h2 { color: #0b6fa4; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+    h3 { color: #084f73; margin-top: 25px; margin-bottom: 10px; font-size: 1.1em; }
+    h4 { color: #444; margin-top: 20px; font-weight: bold; font-size: 1em; }
+
+    p, li { color: #444; font-size: 16px; margin-bottom: 10px; }
+    ul { margin-left: 20px; margin-bottom: 15px; }
+    
+    .formula-box {
+      background: #f4f8fb;
+      border-left: 4px solid #0b6fa4;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: "Times New Roman", serif;
+      font-size: 1.1em;
+      text-align: center;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .info-card {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .icon-header { display: flex; align-items: center; gap: 10px; }
+    .icon-header span { font-size: 24px; }
+
+    a.ref-link { color: #0b6fa4; text-decoration: none; word-break: break-all; }
+    a.ref-link:hover { text-decoration: underline; }
+
+    footer { background: #0b6fa4; color: white; padding: 15px; text-align: center; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="logo.png" alt="BioSeqAnalysis Logo" onerror="this.style.display='none'"/>
+    <h1>BioSeqAnalysis</h1>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="dna.html">DNA Tools</a>
+    <a href="rna.html">RNA Tools</a>
+    <a href="protein.html">Protein Tools</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contacts</a>
+  </nav>
+
+  <main>
+    
+    <!-- Introduction Section -->
+    <div class="doc-section">
+      <h1 class="page-title">About BioSeqAnalysis</h1>
+      <p>
+        <strong>BioSeqAnalysis</strong> is an integrated online platform designed to simplify the fundamental analyses of DNA, RNA, and Protein sequences. It serves as an educational and research-friendly tool for students, teachers, and scientists in the fields of Bioinformatics, Molecular Biology, Biotechnology, Genomics, and Proteomics.
+      </p>
+      <p>
+        The platform focuses on basic physicochemical properties, sequence composition, and structural/functional insights that help users understand the biological significance of their sequences.
+      </p>
+      <p>
+        This page explains in detail what each tool does, why the calculations matter, the formulas used, advantages, limitations, and references for further reading.
+      </p>
+    </div>
+
+    <!-- DNA Tool Section -->
+    <div class="doc-section" id="dna">
+      <div class="icon-header">
+        <span>🧬</span>
+        <h2>1. DNA Analysis Tool</h2>
+      </div>
+      <p>The DNA Analysis Tool in BioSeqAnalysis performs essential calculations that help users understand the composition, structure, stability, and coding potential of DNA sequences.</p>
+      
+      <h3>1.1 What This Tool Calculates</h3>
+      
+      <h4>1. Length of DNA Sequence</h4>
+      <p>Total number of nucleotides (nt).</p>
+      <div class="formula-box">
+        $$ Length = \text{Number of nucleotides} $$
+      </div>
+      <p><strong>Purpose:</strong> Understanding genome size, gene size, and sequence completeness.</p>
+
+      <h4>2. Nucleotide Composition</h4>
+      <p>Calculates the count and percentage of each base: Adenine (A), Thymine (T), Guanine (G), Cytosine (C).</p>
+      <div class="formula-box">
+        $$ \%A = \frac{A}{A+T+G+C} \times 100 $$
+      </div>
+      <p><strong>Purpose:</strong> Species-specific signature, detecting contamination, and PCR primer design. Example: Human genome has ~41% GC.</p>
+
+      <h4>3. GC Content</h4>
+      <p>Percentage of G + C nucleotides in the sequence.</p>
+      <div class="formula-box">
+        $$ GC\% = \frac{G + C}{A + T + G + C} \times 100 $$
+      </div>
+      <p><strong>Properties & Biological Importance:</strong></p>
+      <ul>
+        <li>Higher GC = stronger double helix (3 hydrogen bonds).</li>
+        <li>Influences melting temperature (Tm).</li>
+        <li>Affects gene expression and genome stability.</li>
+      </ul>
+
+      <h4>4. Melting Temperature (Basic Rule)</h4>
+      <p>Approximate Tm using the Wallace rule:</p>
+      <div class="formula-box">
+        $$ Tm = 2^\circ C (A+T) + 4^\circ C (G+C) $$
+      </div>
+      <p><strong>Purpose:</strong> Used in PCR primer design and hybridization experiments.</p>
+
+      <h4>5. Reverse Complement</h4>
+      <p>Generates the reverse complement strand (A↔T, C↔G).</p>
+      <p><strong>Use:</strong> Primer design, Double-stranded DNA reconstruction.</p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h4>1.2 Advantages</h4>
+          <ul>
+            <li>✔ Helps in cloning, PCR, and molecular design</li>
+            <li>✔ Gives quick genomic characteristics</li>
+            <li>✔ Important for gene prediction and annotation</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>1.3 Limitations</h4>
+          <ul>
+            <li>✘ Does not predict gene function</li>
+            <li>✘ Cannot identify long-range regulatory elements</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>1.4 Useful References</h3>
+      <ul>
+        <li>NCBI DNA Tutorials: <a class="ref-link" href="https://www.ncbi.nlm.nih.gov/" target="_blank">https://www.ncbi.nlm.nih.gov/</a></li>
+        <li>Nature Education: DNA Structure Basics</li>
+        <li>Primer Design Reference (IDT): <a class="ref-link" href="https://www.idtdna.com/" target="_blank" >https://www.idtdna.com/</a></li>
+      </ul>
+    </div>
+
+    <!-- RNA Tool Section -->
+    <div class="doc-section" id="rna">
+      <div class="icon-header">
+        <span>🧬</span>
+        <h2>2. RNA Analysis Tool</h2>
+      </div>
+      <p>RNA analysis focuses on coding potential, translational properties, and functional features such as codon usage.</p>
+
+      <h3>2.1 What This Tool Calculates</h3>
+      
+      <h4>1. Sequence Length & Composition</h4>
+      <p>Total number of nucleotides and composition (A, U, G, C). Same formula as DNA but with U instead of T.</p>
+
+      <h4>2. Codon Identification</h4>
+      <p>Splits RNA into codons (triplets) in reading frame 1. (e.g., AUG UUU... → Met-Phe...).</p>
+      
+      <h4>3. Codon Usage Frequency</h4>
+      <p>Counts how many times each codon appears and calculates percentage.</p>
+      <div class="formula-box">
+        $$ \text{Codon Frequency} = \frac{\text{Count of specific codon}}{\text{Total codons}} \times 100 $$
+      </div>
+      <p><strong>Purpose:</strong> Species-specific codon bias, gene expression optimization.</p>
+
+      <h4>4. GC Content at Positions 1, 2, 3</h4>
+      <div class="formula-box">
+        $$ GC_{1,2,3}\% = \frac{G+C \text{ at specific position}}{\text{Total codons}} \times 100 $$
+      </div>
+      <p><strong>Importance:</strong> GC3% is associated with evolutionary pressure and translational efficiency.</p>
+
+      <h4>5. ORF Finder & Translation</h4>
+      <p>Finds region from start (AUG) to stop (UAA/UAG/UGA) and translates it to protein (1-letter code).</p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h4>2.3 Advantages</h4>
+          <ul>
+            <li>✔ Quick identification of coding regions</li>
+            <li>✔ Useful for gene expression studies</li>
+            <li>✔ Helps in synthetic gene design</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>2.4 Disadvantages</h4>
+          <ul>
+            <li>✘ Cannot detect introns</li>
+            <li>✘ Does not ensure real protein expression</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>2.5 Useful References</h3>
+      <ul>
+        <li>Codon Usage Database: <a class="ref-link" href="https://www.kazusa.or.jp/codon/" target="_blank" >https://www.kazusa.or.jp/codon/</a></li>
+        <li>NCBI ORF Finder: <a class="ref-link" href="https://www.ncbi.nlm.nih.gov/orffinder/" target="_blank" >https://www.ncbi.nlm.nih.gov/orffinder/</a></li>
+        <li>Ensembl Genome Browser: <a class="ref-link" href="https://www.ensembl.org/" target="_blank">https://www.ensembl.org/</a></li>
+      </ul>
+    </div>
+
+    <!-- Protein Tool Section -->
+    <div class="doc-section" id="protein">
+      <div class="icon-header">
+        <span>🪢</span>
+        <h2>3. Protein Analysis Tool</h2>
+      </div>
+      <p>The Protein Analysis Tool helps analyze amino acid sequences to understand structure, physicochemical properties, and functional hints.</p>
+
+      <h3>3.1 What This Tool Calculates</h3>
+      
+      <h4>1. Amino Acid Composition</h4>
+      <div class="formula-box">
+        $$ \%AA_i = \frac{\text{Count of } AA_i}{\text{Total AAs}} \times 100 $$
+      </div>
+      <p><strong>Purpose:</strong> Helps predict structure and function (e.g., membrane proteins are hydrophobic).</p>
+
+      <h4>2. Molecular Weight (MW)</h4>
+      <p>Uses average residue masses.</p>
+      <div class="formula-box">
+        $$ MW = \sum(\text{Mass of AA}) - (\text{Peptide bonds} \times 18.015) $$
+      </div>
+
+      <h4>3. Theoretical Isoelectric Point (pI)</h4>
+      <p>pH where net charge = 0. Calculated using Henderson–Hasselbalch equations. Important for purification (IEF).</p>
+
+      <h4>4. Extinction Coefficient</h4>
+      <p>Based on absorbance of Tryptophan (W), Tyrosine (Y), and Cystine (C-C).</p>
+      <div class="formula-box">
+        $$ A_{280} = (W \times 5500) + (Y \times 1490) + (Cys_{SS} \times 125) $$
+      </div>
+
+      <h4>5. Hydropathy Index (Kyte–Doolittle)</h4>
+      <p>Detects hydrophobic/hydrophilic regions. Useful for identifying membrane helices and surface regions.</p>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h4>3.3 Advantages</h4>
+          <ul>
+            <li>✔ Fast physicochemical analysis</li>
+            <li>✔ Useful for proteomics planning</li>
+            <li>✔ Predicts protein behavior in vitro</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>3.4 Disadvantages</h4>
+          <ul>
+            <li>✘ Does not provide 3D structure (needs AlphaFold)</li>
+            <li>✘ Limited functional insights without homology</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>3.5 Useful References</h3>
+      <ul>
+        <li>ExPASy ProtParam: <a class="ref-link" href="https://web.expasy.org/protparam/" target="_blank">https://web.expasy.org/protparam/</a></li>
+        <li>UniProt Knowledgebase: <a class="ref-link" href="https://www.uniprot.org/" target="_blank">https://www.uniprot.org/</a></li>
+        <li>Protein Structure (RCSB PDB): <a class="ref-link" href="https://www.rcsb.org/" target="_blank">https://www.rcsb.org/</a></li>
+      </ul>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2025 BioSeqAnalysis | Developed for Bioinformatics Students & Researchers
+  </footer>
+
+</body>
+</html>

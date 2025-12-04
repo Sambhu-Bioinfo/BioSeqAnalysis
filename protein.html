@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioSeqAnalysis – Protein Tools</title>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- JSZip -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <!-- FileSaver -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <style>
+    /* --- CSS (Identical to DNA/RNA Tools) --- */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #222; }
+    
+    header { background: #0b6fa4; padding: 20px; display: flex; align-items: center; color: white; }
+    header img { height: 60px; margin-right: 15px; }
+    
+    nav { background: #084f73; padding: 12px; text-align: center; }
+    nav a { color: white; margin: 0 15px; text-decoration: none; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+
+    main { max-width: 1200px; margin: 20px auto 40px; padding: 0 15px; }
+    h2 { color: #0b6fa4; margin-top: 0; }
+
+    .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+
+    .flex-row { display: flex; flex-wrap: wrap; gap: 20px; }
+    .flex-col { flex: 1; min-width: 260px; }
+
+    textarea { width: 100%; font-family: "Courier New", monospace; font-size: 14px; padding: 10px; border-radius: 6px; border: 1px solid #ccc; resize: vertical; box-sizing: border-box; height: 150px; }
+    input[type="text"] { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 14px; }
+
+    button { padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; background: #0b6fa4; color: white; font-size: 14px; white-space: nowrap; transition: background 0.3s; margin-bottom: 5px;}
+    button:hover { background: #084f73; }
+    button.secondary { background: #5bc0de; }
+    button.example-btn { background: #f0ad4e; margin-left: auto; }
+    button.download-btn { background: #d9534f; margin-right: 5px; color: white;}
+    button.download-btn:hover { background: #c9302c; }
+
+    .message { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 14px; display: none; }
+    .message.error { display: block; background: #ffe6e6; color: #a40000; border: 1px solid #ffb3b3; }
+    .message.success { display: block; background: #e7f7ea; color: #0d6a2f; border: 1px solid #b8e2c3; }
+
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+
+    .result-section { display: flex; gap: 20px; flex-wrap: wrap; }
+    
+    .result-terminal { 
+        background: #050814; color: #00ff41; 
+        font-family: "Courier New", monospace; font-size: 13px; 
+        border-radius: 10px; padding: 15px; 
+        height: 550px; overflow-y: auto; white-space: pre-wrap; 
+        flex: 2; min-width: 300px; border: 1px solid #333; 
+    }
+
+    .chart-box { 
+        flex: 1; min-width: 300px; background: white; 
+        border-radius: 10px; padding: 10px; border: 1px solid #ddd; 
+        display: none; align-items: center; justify-content: center; flex-direction: column; 
+    }
+    
+    canvas { max-width: 100%; max-height: 400px; }
+    
+    .downloads-row { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    footer { background: #0b6fa4; color: white; padding: 15px; text-align: center; margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="logo.png" alt="BioSeqAnalysis Logo" onerror="this.style.display='none'"/>
+    <h1>BioSeqAnalysis</h1>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="dna.html">DNA Tools</a>
+    <a href="rna.html">RNA Tools</a>
+    <a href="protein.html">Protein Tools</a>
+    <a href="about.html">About</a>
+    <a href="contact.html">Contacts</a>
+  </nav>
+
+  <main>
+    <div class="panel">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <h2>Input Protein Sequence</h2>
+            <button class="example-btn" onclick="loadExample()">Load Example (BSA)</button>
+        </div>
+
+        <div class="flex-row">
+            <div class="flex-col">
+                <textarea id="rawInput" placeholder=">Protein_ID&#10;MKWVTFISLL..."></textarea>
+                <div id="statusMsg" class="message"></div>
+            </div>
+            <div class="flex-col" style="max-width: 350px;">
+                <label style="font-weight:bold; display:block; margin-bottom:5px;">Upload FASTA File:</label>
+                <input type="file" id="fileInput" accept=".fasta,.fa,.txt" onchange="handleFileUpload()">
+                
+                <label style="font-weight:bold; display:block; margin-top:15px; margin-bottom:5px;">Or Fetch from NCBI (Protein DB):</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="ncbiId" placeholder="Accession (e.g. NP_000508)">
+                    <button class="secondary" onclick="fetchNCBI()">Fetch</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Protein Analysis Toolkit</h2>
+        
+        <div class="tools-grid">
+            <button onclick="runBasicStats()">1. Basic Statistics & MW/pI</button>
+            <button onclick="runHydropathy()">2. Hydropathy Plot</button>
+            <button onclick="runStructurePred()">3. SignalP & TM Prediction</button>
+            <button onclick="runMotifs()">4. Motifs & Domains</button>
+            <button onclick="runLocalization()">5. Subcellular Localization</button>
+            <button onclick="runActiveSites()">6. Active Sites & PTMs</button>
+        </div>
+
+        <div class="result-section">
+            <div class="result-terminal" id="terminalOutput">
+> System Ready.
+> Waiting for amino acid sequence...
+            </div>
+
+            <div class="chart-box" id="chartContainer">
+                <h4 id="chartTitle" style="margin:0 0 10px 0; color:#333;">Analysis Plot</h4>
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <div class="downloads-row" id="downloadArea" style="display:none;"></div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 BioSeqAnalysis | Developed for Bioinformatics Students & Researchers
+  </footer>
+
+  <script>
+    // --- BIO DATA ---
+    // Molecular Weights (avg isotopic)
+    const AA_MW = {
+        'A': 89.09, 'R': 174.20, 'N': 132.12, 'D': 133.10, 'C': 121.16,
+        'E': 147.13, 'Q': 146.15, 'G': 75.07, 'H': 155.16, 'I': 131.18,
+        'L': 131.18, 'K': 146.19, 'M': 149.21, 'F': 165.19, 'P': 115.13,
+        'S': 105.09, 'T': 119.12, 'W': 204.23, 'Y': 181.19, 'V': 117.15
+    };
+
+    // Kyte-Doolittle Hydropathy Scale
+    const HYDROPATHY = {
+        'I': 4.5, 'V': 4.2, 'L': 3.8, 'F': 2.8, 'C': 2.5,
+        'M': 1.9, 'A': 1.8, 'G': -0.4, 'T': -0.7, 'S': -0.8,
+        'W': -0.9, 'Y': -1.3, 'P': -1.6, 'H': -3.2, 'E': -3.5,
+        'Q': -3.5, 'D': -3.5, 'N': -3.5, 'K': -3.9, 'R': -4.5
+    };
+
+    // pKa values for pI calculation (EMBOSS set)
+    const PKA = {
+        'C_term': 3.6, 'N_term': 8.6,
+        'D': 3.9, 'E': 4.1, 'H': 6.5,
+        'C': 8.5, 'Y': 10.1, 'K': 10.8, 'R': 12.5
+    };
+
+    // Regex Patterns for Motifs (Simplified PROSITE)
+    const MOTIFS = [
+        { name: "N-glycosylation site", regex: /N[^P][ST][^P]/g },
+        { name: "cAMP-dependent protein kinase site", regex: /[RK]{2}[^P][ST]/g },
+        { name: "Tyrosine kinase phosphorylation site", regex: /[RK].{2,3}[DE].{2,3}Y/g },
+        { name: "Myristoylation site", regex: /^G[^EDRKHPFYW].{2}[STAGCN][^P]/ }, // Usually at N-term
+        { name: "RGD cell attachment", regex: /RGD/g },
+        { name: "Leucine Zipper", regex: /L.{6}L.{6}L.{6}L/g },
+        { name: "Zinc Finger (C2H2 type)", regex: /C.{2,4}C.{12}H.{3,5}H/g },
+        { name: "ATP/GTP-binding loop (P-loop)", regex: /[AG].{4}GK[ST]/g },
+        { name: "Nuclear Localization Signal (Bipartite)", regex: /[KR]{2}.{10,12}[KR]{3}/g },
+        { name: "Nuclear Localization Signal (Monopartite)", regex: /K[KR]R[KR]/g }
+    ];
+
+    // --- GLOBAL STATE ---
+    let currentSeq = "";
+    let headerInfo = "";
+    let myChart = null;
+
+    // --- 1. INPUT & VALIDATION ---
+    function loadExample() {
+        // BSA (Bovine Serum Albumin) fragment
+        const ex = ">BSA_Fragment\nMKWVTFISLLLLFSSAYSRGVFRRDTHKSEIAHRFKDLGEEHFKGLVLIAFSQYLQQCPFDEHVKLVNELTEFAKTCVADESHAGCEKSLHTLFGDELCKVASLRETYGDMADCCEKQEPERNECFLSHKDDSPDLPKLKPDPNTLCDEFKADEKKFWGKYLYEIARRHPYFYAPELLYYANKYNGVFQECCQAEDKGACLLPKIETMREKVLASSARQRLRCASIQKFGERALKAWSVARLSQKFPKAEFVEVTKLVTDLTKVHKECCHGDLLECADDRADLAKYICDNQDTISSKLKECCDKPLLEKSHCIAEVEKDAIPENLPPLTADFAEDKDVCKNYQEAKDAFLGSFLYEYSRRHPEYAVSVLLRLAKEYEATLEECCAKDDPHACYSTVFDKLKHLVDEPQNLIKQNCDQFEKLGEYGFQNALIVRYTRKVPQVSTPTLVEVSRSLGKVGTRCCTKPESERMPCTEDYLSLILNRLCVLHEKTPVSEKVTKCCTESLVNRRPCFSALTPDETYVPKAFDEKLFTFHADICTLPDTEKQIKKQTALVELLKHKPKATEEQLKTVMENFVAFVDKCCAADDKEACFAVEGPKLVVSTQTALA";
+        document.getElementById('rawInput').value = ex;
+        setStatus("Example (BSA) loaded.", "success");
+    }
+
+    function handleFileUpload() {
+        const file = document.getElementById('fileInput').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => { document.getElementById('rawInput').value = e.target.result; setStatus("File loaded.", "success"); };
+        reader.readAsText(file);
+    }
+
+    async function fetchNCBI() {
+        const id = document.getElementById('ncbiId').value.trim();
+        if(!id) return setStatus("Enter ID", "error");
+        setStatus("Fetching...", "success");
+        try {
+            // Note: DB is 'protein' for AA sequences
+            const res = await fetch(`https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=protein&id=${id}&rettype=fasta&retmode=text`);
+            const txt = await res.text();
+            if(txt.includes("Error") || !txt) throw new Error();
+            document.getElementById('rawInput').value = txt;
+            setStatus("Fetched from NCBI.", "success");
+        } catch(e) { setStatus("Fetch failed.", "error"); }
+    }
+
+    function parseInput() {
+        let raw = document.getElementById('rawInput').value.trim();
+        if (!raw) { printTerminal("Error: No input."); return false; }
+        
+        if (raw.startsWith(">")) {
+            let lines = raw.split('\n');
+            headerInfo = lines[0].substring(1).trim();
+            currentSeq = lines.slice(1).join('').replace(/[^A-Za-z]/g, '').toUpperCase();
+        } else {
+            headerInfo = "User_Input";
+            currentSeq = raw.replace(/[^A-Za-z]/g, '').toUpperCase();
+        }
+
+        // Validate AA
+        if (/[^ACDEFGHIKLMNPQRSTVWY*]/.test(currentSeq)) {
+            printTerminal("Error: Invalid characters. Valid AA: ACDEFGHIKLMNPQRSTVWY.");
+            return false;
+        }
+        currentSeq = currentSeq.replace(/\*/g, ''); // Remove stop chars if any
+        return true;
+    }
+
+    function setStatus(msg, type) {
+        const el = document.getElementById('statusMsg');
+        el.innerText = msg; el.className = `message ${type}`; el.style.display='block';
+        setTimeout(()=>el.style.display='none', 4000);
+    }
+
+    function resetUI() {
+        document.getElementById('chartContainer').style.display = 'none';
+        document.getElementById('downloadArea').innerHTML = '';
+        document.getElementById('downloadArea').style.display = 'none';
+        if(myChart) { myChart.destroy(); myChart = null; }
+    }
+
+    // --- 2. BASIC STATS ---
+    function runBasicStats() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const len = currentSeq.length;
+        const counts = {};
+        let mw = 0;
+        
+        // Count AA and calc MW
+        for(let aa of currentSeq) {
+            counts[aa] = (counts[aa]||0) + 1;
+            mw += AA_MW[aa] || 0;
+        }
+        mw -= (len-1) * 18.015; // Subtract water for peptide bonds
+
+        // pI Calculation (Iterative)
+        let pi = calculatePI(counts);
+
+        // Extinction Coefficient (Molar)
+        // E(Prot) = N(Tyr)*1490 + N(Trp)*5500 + N(Cys)*125 (assuming all Cys form cystines)
+        const extCoeff = (counts['Y']||0)*1490 + (counts['W']||0)*5500 + (counts['C']||0)*125;
+        const abs01 = extCoeff > 0 ? (extCoeff / mw).toFixed(3) : 0; // Abs 0.1% (=1g/L)
+
+        let out = `=== PROTEIN BASIC STATISTICS ===
+ID: ${headerInfo}
+Length: ${len} aa
+Molecular Weight: ${mw.toFixed(2)} Da (${(mw/1000).toFixed(2)} kDa)
+Theoretical pI: ${pi.toFixed(2)}
+
+Extinction Coefficient (assuming all pairs Cys):
+${extCoeff} M-1 cm-1
+Abs 0.1% (1 g/L): ${abs01}
+
+Amino Acid Composition:
+AA\tCount\t%
+` + "-".repeat(20) + "\n";
+
+        let csv = "AA,Count,Percentage\n";
+        for(let aa in AA_MW) {
+            let c = counts[aa]||0;
+            let p = ((c/len)*100).toFixed(1);
+            out += `${aa}\t${c}\t${p}%\n`;
+            csv += `${aa},${c},${p}\n`;
+        }
+
+        printTerminal(out);
+        drawBarChart(counts, "Amino Acid Composition");
+        addDownloadBtn(out, "protein_stats.txt");
+        addCSVBtn(csv, "composition.csv");
+        
+        // Add Charge vs pH button
+        let btn = document.createElement('button'); btn.className='download-btn'; btn.style.background='#f0ad4e'; btn.innerText="Show Charge vs pH Plot";
+        btn.onclick = () => drawChargePlot(counts);
+        document.getElementById('downloadArea').appendChild(btn);
+    }
+
+    function calculatePI(counts) {
+        let min = 0, max = 14, pi = 7;
+        while(max - min > 0.01) {
+            pi = (min + max) / 2;
+            let charge = calculateCharge(counts, pi);
+            if(charge > 0) min = pi; else max = pi;
+        }
+        return pi;
+    }
+
+    function calculateCharge(counts, pH) {
+        let charge = 0;
+        // Positive: N_term + K + R + H
+        charge += 1 / (1 + Math.pow(10, pH - PKA.N_term));
+        charge += (counts['K']||0) / (1 + Math.pow(10, pH - PKA.K));
+        charge += (counts['R']||0) / (1 + Math.pow(10, pH - PKA.R));
+        charge += (counts['H']||0) / (1 + Math.pow(10, pH - PKA.H));
+        // Negative: C_term + D + E + C + Y
+        charge -= 1 / (1 + Math.pow(10, PKA.C_term - pH));
+        charge -= (counts['D']||0) / (1 + Math.pow(10, PKA.D - pH));
+        charge -= (counts['E']||0) / (1 + Math.pow(10, PKA.E - pH));
+        charge -= (counts['C']||0) / (1 + Math.pow(10, PKA.C - pH));
+        charge -= (counts['Y']||0) / (1 + Math.pow(10, PKA.Y - pH));
+        return charge;
+    }
+
+    // --- 3. HYDROPATHY PLOT ---
+    function runHydropathy() {
+        if(!parseInput()) return;
+        resetUI();
+
+        const winSize = 9; // Kyte-Doolittle Window
+        const dataPoints = [];
+        const labels = [];
+        
+        for(let i=0; i <= currentSeq.length - winSize; i++) {
+            let sum = 0;
+            for(let j=0; j<winSize; j++) {
+                sum += HYDROPATHY[currentSeq[i+j]] || 0;
+            }
+            dataPoints.push(sum / winSize);
+            labels.push(i + 1 + Math.floor(winSize/2));
+        }
+
+        let out = `=== HYDROPATHY PLOT ANALYSIS (Kyte-Doolittle) ===
+Window Size: ${winSize}
+Total Points: ${dataPoints.length}
+
+Interpretation:
+> 1.6 : Potential Transmembrane (TM) region (Hydrophobic)
+< -1.6: Likely Surface/Hydrophilic region
+
+(See Chart below for visualization)`;
+
+        printTerminal(out);
+        drawLineChart(labels, dataPoints, "Hydropathy Score", "Pos");
+        addDownloadBtn(dataPoints.map((v,i)=>`${labels[i]},${v}`).join('\n'), "hydropathy_data.csv");
+        addChartDownloadBtn();
+    }
+
+    // --- 4. SIGNALP & TM PREDICTION (Heuristic) ---
+    function runStructurePred() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // 1. Signal Peptide Heuristic: 
+        // Start with M, High hydrophobic region in first 30 AA.
+        let signalP = "No Signal Peptide detected.";
+        let nTerm = currentSeq.substring(0, 30);
+        let hCount = 0;
+        for(let aa of nTerm) if((HYDROPATHY[aa]||0) > 1.8) hCount++;
+        
+        if(currentSeq.startsWith('M') && hCount > 8) {
+            signalP = "Detected: High probability of N-term Signal Peptide.";
+        }
+
+        // 2. Transmembrane Helices
+        // Look for 18-25 AA stretch with avg hydropathy > 1.6
+        const win = 19;
+        const tmRegions = [];
+        for(let i=0; i <= currentSeq.length - win; i++) {
+            let sum = 0;
+            for(let j=0; j<win; j++) sum += HYDROPATHY[currentSeq[i+j]]||0;
+            if(sum/win > 1.6) {
+                // Check if overlapping
+                if(tmRegions.length > 0 && i - tmRegions[tmRegions.length-1].end < 5) {
+                    tmRegions[tmRegions.length-1].end = i+win; // Extend
+                } else {
+                    tmRegions.push({start: i+1, end: i+win});
+                }
+            }
+        }
+
+        let out = `=== STRUCTURAL FEATURE PREDICTION ===
+(Note: Rule-based heuristics. Use Phobius/TMHMM for confirmation.)
+
+1. Signal Peptide:
+   ${signalP}
+
+2. Transmembrane Helices (Hydrophobic Core > 19aa):
+   Count: ${tmRegions.length}
+   
+   Regions:
+`;
+        tmRegions.forEach(r => out += `   ${r.start} - ${r.end}\n`);
+        if(tmRegions.length===0) out += "   None detected.\n";
+
+        printTerminal(out);
+        addDownloadBtn(out, "structure_prediction.txt");
+    }
+
+    // --- 5. MOTIFS & ACTIVE SITES ---
+    function runMotifs() {
+        if(!parseInput()) return;
+        resetUI();
+
+        let out = `=== MOTIF & DOMAIN IDENTIFICATION ===\nScanning against internal database...\n\n`;
+        let csv = "Motif,Position,Sequence_Match\n";
+        let foundTotal = 0;
+
+        MOTIFS.forEach(m => {
+            let match;
+            let found = false;
+            // Reset regex lastIndex just in case
+            m.regex.lastIndex = 0;
+            
+            // For simple regexes without /g, we test manually or execute
+            // My MOTIFS array uses /g for iterative searching
+            
+            while ((match = m.regex.exec(currentSeq)) !== null) {
+                if(!found) {
+                    out += `> ${m.name}:\n`;
+                    found = true;
+                }
+                out += `  Pos: ${match.index + 1}\tSeq: ${match[0]}\n`;
+                csv += `"${m.name}",${match.index + 1},${match[0]}\n`;
+                foundTotal++;
+            }
+            if(found) out += "\n";
+        });
+
+        if(foundTotal === 0) out += "No common motifs found.";
+        
+        printTerminal(out);
+        addDownloadBtn(out, "motifs.txt");
+        addCSVBtn(csv, "motifs.csv");
+    }
+
+    function runActiveSites() {
+        // Just an alias for Motifs but focused
+        if(!parseInput()) return;
+        resetUI();
+        let out = `=== ACTIVE SITE & PTM PREDICTION ===
+(Scanning for specific enzymatic active sites and PTM targets)
+
+`;
+        // Filter MOTIFS for PTMs or specific functional sites
+        const targets = ["glycosylation", "phosphorylation", "Zinc", "ATP", "kinase"];
+        let foundAny = false;
+
+        MOTIFS.forEach(m => {
+            if(targets.some(t => m.name.includes(t))) {
+                let match;
+                while((match = m.regex.exec(currentSeq)) !== null) {
+                    out += `[${m.name}] at Pos ${match.index+1}: ${match[0]}\n`;
+                    foundAny = true;
+                }
+            }
+        });
+
+        if(!foundAny) out += "No specific Active Sites or PTMs detected in this pass.";
+        printTerminal(out);
+        addDownloadBtn(out, "active_sites.txt");
+    }
+
+    // --- 6. SUBCELLULAR LOCALIZATION (Rule Based) ---
+    function runLocalization() {
+        if(!parseInput()) return;
+        resetUI();
+
+        // Very simple logic
+        let loc = "Cytoplasmic (Default)";
+        let reason = "No specific targeting signals found.";
+
+        // Check NLS
+        if(/K[KR]R[KR]/.test(currentSeq) || /[KR]{2}.{10,12}[KR]{3}/.test(currentSeq)) {
+            loc = "Nuclear";
+            reason = "Nuclear Localization Signal (NLS) detected.";
+        }
+        // Check Signal Peptide
+        else if(currentSeq.startsWith('M')) {
+            let nTerm = currentSeq.substring(0,25);
+            let h = 0; for(let c of nTerm) if((HYDROPATHY[c]||0)>1.5) h++;
+            if(h>8) {
+                loc = "Secretory Pathway / Extracellular";
+                reason = "N-terminal Signal Peptide detected.";
+                
+                // Check ER Retention
+                if(currentSeq.endsWith('KDEL') || currentSeq.endsWith('HDEL')) {
+                    loc = "Endoplasmic Reticulum (ER)";
+                    reason = "Signal Peptide + C-term KDEL/HDEL retention signal.";
+                }
+            }
+        }
+        // Check Mitochondria (High R/K/S/T at N-term, no acidic)
+        else {
+            let nTerm = currentSeq.substring(0,20);
+            let pos = 0; for(let c of nTerm) if("RK".includes(c)) pos++;
+            let hydroxyl = 0; for(let c of nTerm) if("ST".includes(c)) hydroxyl++;
+            let acidic = 0; for(let c of nTerm) if("DE".includes(c)) acidic++;
+            
+            if(pos > 2 && hydroxyl > 2 && acidic === 0) {
+                loc = "Mitochondrial";
+                reason = "Amphipathic N-term helix properties detected.";
+            }
+        }
+
+        let out = `=== SUBCELLULAR LOCALIZATION PREDICTION ===
+Prediction: ${loc}
+Confidence: Medium (Rule-based)
+
+Reasoning:
+${reason}
+
+Note: For high-accuracy prediction, use tools like DeepLoc or WolfPsort.
+===========================================`;
+
+        printTerminal(out);
+        addDownloadBtn(out, "localization.txt");
+    }
+
+
+    // --- HELPERS ---
+    function printTerminal(txt) { document.getElementById('terminalOutput').innerText = txt; }
+
+    function addDownloadBtn(content, fname) {
+        const area = document.getElementById('downloadArea');
+        area.style.display = 'flex';
+        let b = document.createElement('button'); b.className='download-btn'; b.innerText=`DL ${fname}`;
+        b.onclick = ()=> saveAs(new Blob([content],{type:'text/plain'}), fname);
+        area.appendChild(b);
+    }
+    
+    function addCSVBtn(content, fname) {
+        const area = document.getElementById('downloadArea');
+        let b = document.createElement('button'); b.className='download-btn'; b.style.background='#5cb85c'; b.innerText=`DL .csv`;
+        b.onclick = ()=> saveAs(new Blob([content],{type:'text/csv'}), fname);
+        area.appendChild(b);
+    }
+    
+    function addChartDownloadBtn() {
+        const area = document.getElementById('downloadArea');
+        let b = document.createElement('button'); b.className='download-btn'; b.style.background='#5bc0de'; b.innerText="DL Chart (.png)";
+        b.onclick = ()=> {
+            let a = document.createElement('a'); a.href = myChart.toBase64Image(); a.download = "chart.png"; a.click();
+        };
+        area.appendChild(b);
+    }
+
+    // --- CHARTS ---
+    function drawBarChart(data, title) {
+        document.getElementById('chartContainer').style.display = 'flex';
+        document.getElementById('chartTitle').innerText = title;
+        if(myChart) myChart.destroy();
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: Object.keys(data), datasets:[{label: 'Count', data: Object.values(data), backgroundColor: '#0b6fa4'}] },
+            options: { responsive:true, maintainAspectRatio:false }
+        });
+    }
+
+    function drawLineChart(labels, data, title, xLabel) {
+        document.getElementById('chartContainer').style.display = 'flex';
+        document.getElementById('chartTitle').innerText = title;
+        if(myChart) myChart.destroy();
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: labels, 
+                datasets:[{
+                    label: 'Hydropathy (KD)', 
+                    data: data, 
+                    borderColor: '#d9534f',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false
+                }] 
+            },
+            options: { 
+                responsive:true, 
+                maintainAspectRatio:false,
+                scales: {
+                    y: { 
+                        grid: { color: (ctx) => ctx.tick.value === 0 ? '#000' : '#ddd' }
+                    }
+                },
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            line1: { type: 'line', yMin: 1.6, yMax: 1.6, borderColor: 'green', borderWidth: 1, borderDash: [5,5], label: {content:'TM Threshold'} }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function drawChargePlot(counts) {
+        if(myChart) myChart.destroy();
+        document.getElementById('chartContainer').style.display = 'flex';
+        document.getElementById('chartTitle').innerText = "Net Charge vs pH";
+        
+        const labels = [];
+        const data = [];
+        for(let ph=0; ph<=14; ph+=0.5) {
+            labels.push(ph);
+            data.push(calculateCharge(counts, ph));
+        }
+
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Net Charge',
+                    data: data,
+                    borderColor: '#337ab7',
+                    borderWidth: 2,
+                    pointRadius: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { grid: { color: (ctx) => ctx.tick.value === 0 ? '#000' : '#ddd' } } }
+            }
+        });
+        addChartDownloadBtn();
+    }
+  </script>
+</body>
+</html>
